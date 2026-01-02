@@ -3,16 +3,16 @@
 [Console]::OutputEncoding = [System.Text.Encoding]::UTF8
 
 Clear-Host
-Write-Host "--- REPORTE DE DIAGN�STICO (Soporte TI) ---" -ForegroundColor Cyan
+Write-Host "--- REPORTE DE DIAGNOSTICO (Soporte TI) ---" -ForegroundColor Cyan
 
 # -----------------------------------------------------------------
-# 1. SISTEMA OPERATIVO Y VERSI�N
+# 1. SISTEMA OPERATIVO Y VERSION
 # -----------------------------------------------------------------
 $OS = Get-CimInstance Win32_OperatingSystem
 $OSVersion = $OS.Caption
 $OSBuild = $OS.BuildNumber
 
-Write-Host "`n[S.O. Y VERSI�N:] " -NoNewline -ForegroundColor Yellow
+Write-Host "`n[S.O. Y VERSION:] " -NoNewline -ForegroundColor Yellow
 Write-Host "$($OSVersion) (Build $OSBuild)" -ForegroundColor White
 
 # -----------------------------------------------------------------
@@ -48,7 +48,7 @@ try {
 }
 
 # -----------------------------------------------------------------
-# 4. CONEXI�N DE RED LOCAL
+# 4. CONEXION DE RED LOCAL
 # -----------------------------------------------------------------
 Write-Host "[CONEXI�N LOCAL:] " -NoNewline -ForegroundColor Yellow
 
@@ -72,7 +72,7 @@ if ($ActiveAdapter) {
 }
 
 # -----------------------------------------------------------------
-# 5. DIRECCI�N IP Y DNS
+# 5. DIRECCION IP Y DNS
 # -----------------------------------------------------------------
 if ($ActiveAdapter) {
     $IPAddress = Get-NetIPAddress -InterfaceAlias $ActiveAdapter.Name -AddressFamily IPv4 | Where-Object { $_.PrefixLength -ne 128 } | Select-Object -ExpandProperty IPAddress -First 1
@@ -83,7 +83,7 @@ if ($ActiveAdapter) {
     Write-Host "[DNS PRINCIPALES:] " -NoNewline -ForegroundColor Yellow
     Write-Host "$($DnsServers)" -ForegroundColor Green
 }
-# . DETECCIÓN DE PROXY (Registro de Windows)
+# . DETECCION DE PROXY (Registro de Windows)
 Write-Host "[ESTADO DEL PROXY:] " -NoNewline -ForegroundColor Yellow
 $ProxyReg = Get-ItemProperty -Path "HKCU:\Software\Microsoft\Windows\CurrentVersion\Internet Settings"
 if ($ProxyReg.ProxyEnable -eq 1) {
@@ -177,3 +177,4 @@ if ($StartApps) {
 
 # 6. CIERRE
 Write-Host "`n----------------------------------------------" -ForegroundColor Cyan
+
