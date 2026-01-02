@@ -50,7 +50,7 @@ try {
 # -----------------------------------------------------------------
 # 4. CONEXION DE RED LOCAL
 # -----------------------------------------------------------------
-Write-Host "[CONEXI�N LOCAL:] " -NoNewline -ForegroundColor Yellow
+Write-Host "[CONEXION LOCAL:] " -NoNewline -ForegroundColor Yellow
 
 $ActiveAdapter = Get-NetAdapter | Where-Object { $_.Status -eq "Up" -and $_.Name -notlike "*VPN*" -and $_.Name -notlike "*Virtual*" } | Select-Object -First 1
 
@@ -78,7 +78,7 @@ if ($ActiveAdapter) {
     $IPAddress = Get-NetIPAddress -InterfaceAlias $ActiveAdapter.Name -AddressFamily IPv4 | Where-Object { $_.PrefixLength -ne 128 } | Select-Object -ExpandProperty IPAddress -First 1
     $DnsServers = (Get-DnsClientServerAddress -InterfaceAlias $ActiveAdapter.Name).ServerAddresses -join ", "
 
-    Write-Host "[DIRECCI�N IP LOCAL:] " -NoNewline -ForegroundColor Yellow
+    Write-Host "[DIRECCION IP LOCAL:] " -NoNewline -ForegroundColor Yellow
     Write-Host "$($IPAddress)" -ForegroundColor Green
     Write-Host "[DNS PRINCIPALES:] " -NoNewline -ForegroundColor Yellow
     Write-Host "$($DnsServers)" -ForegroundColor Green
@@ -177,5 +177,6 @@ if ($StartApps) {
 
 # . CIERRE
 Write-Host "`n----------------------------------------------" -ForegroundColor Cyan
+
 
 
