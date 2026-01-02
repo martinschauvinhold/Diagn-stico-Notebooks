@@ -1,17 +1,18 @@
-# SCRIPT DE DIAGNÓSTICO TI - VERSIÓN FINAL INTEGRADA
+# SCRIPT DE DIAGNï¿½STICO TI - VERSIï¿½N FINAL INTEGRADA
 # Incluye: ISP Lookup con nombre, Uso de CPU, RAM, Disco y Seguridad.
+[Console]::OutputEncoding = [System.Text.Encoding]::UTF8
 
 Clear-Host
-Write-Host "--- REPORTE DE DIAGNÓSTICO (Soporte TI) ---" -ForegroundColor Cyan
+Write-Host "--- REPORTE DE DIAGNï¿½STICO (Soporte TI) ---" -ForegroundColor Cyan
 
 # -----------------------------------------------------------------
-# 1. SISTEMA OPERATIVO Y VERSIÓN
+# 1. SISTEMA OPERATIVO Y VERSIï¿½N
 # -----------------------------------------------------------------
 $OS = Get-CimInstance Win32_OperatingSystem
 $OSVersion = $OS.Caption
 $OSBuild = $OS.BuildNumber
 
-Write-Host "`n[S.O. Y VERSIÓN:] " -NoNewline -ForegroundColor Yellow
+Write-Host "`n[S.O. Y VERSIï¿½N:] " -NoNewline -ForegroundColor Yellow
 Write-Host "$($OSVersion) (Build $OSBuild)" -ForegroundColor White
 
 # -----------------------------------------------------------------
@@ -32,11 +33,11 @@ if ($PingResult) {
 Write-Host "[PROVEEDOR ACTUAL:] " -NoNewline -ForegroundColor Yellow
 
 try {
-    # Usamos ipinfo.io/json para obtener el nombre de la organización
+    # Usamos ipinfo.io/json para obtener el nombre de la organizaciï¿½n
     $Lookup = Invoke-RestMethod -Uri "https://ipinfo.io/json" -TimeoutSec 5 -ErrorAction Stop
-    
+
     if ($Lookup.org) {
-        # Limpiamos el texto para quitar el número de AS y dejar solo el nombre comercial
+        # Limpiamos el texto para quitar el nï¿½mero de AS y dejar solo el nombre comercial
         $NombreISP = $Lookup.org -replace 'AS\d+\s', ''
         Write-Host "$($NombreISP) (IP: $($Lookup.ip))" -ForegroundColor Green
     } else {
@@ -47,9 +48,9 @@ try {
 }
 
 # -----------------------------------------------------------------
-# 4. CONEXIÓN DE RED LOCAL
+# 4. CONEXIï¿½N DE RED LOCAL
 # -----------------------------------------------------------------
-Write-Host "[CONEXIÓN LOCAL:] " -NoNewline -ForegroundColor Yellow
+Write-Host "[CONEXIï¿½N LOCAL:] " -NoNewline -ForegroundColor Yellow
 
 $ActiveAdapter = Get-NetAdapter | Where-Object { $_.Status -eq "Up" -and $_.Name -notlike "*VPN*" -and $_.Name -notlike "*Virtual*" } | Select-Object -First 1
 
@@ -71,16 +72,25 @@ if ($ActiveAdapter) {
 }
 
 # -----------------------------------------------------------------
-# 5. DIRECCIÓN IP Y DNS
+# 5. DIRECCIï¿½N IP Y DNS
 # -----------------------------------------------------------------
 if ($ActiveAdapter) {
     $IPAddress = Get-NetIPAddress -InterfaceAlias $ActiveAdapter.Name -AddressFamily IPv4 | Where-Object { $_.PrefixLength -ne 128 } | Select-Object -ExpandProperty IPAddress -First 1
     $DnsServers = (Get-DnsClientServerAddress -InterfaceAlias $ActiveAdapter.Name).ServerAddresses -join ", "
-    
-    Write-Host "[DIRECCIÓN IP LOCAL:] " -NoNewline -ForegroundColor Yellow
+
+    Write-Host "[DIRECCIï¿½N IP LOCAL:] " -NoNewline -ForegroundColor Yellow
     Write-Host "$($IPAddress)" -ForegroundColor Green
     Write-Host "[DNS PRINCIPALES:] " -NoNewline -ForegroundColor Yellow
     Write-Host "$($DnsServers)" -ForegroundColor Green
+}
+# . DETECCIÃ“N DE PROXY (Registro de Windows)
+Write-Host "[ESTADO DEL PROXY:] " -NoNewline -ForegroundColor Yellow
+$ProxyReg = Get-ItemProperty -Path "HKCU:\Software\Microsoft\Windows\CurrentVersion\Internet Settings"
+if ($ProxyReg.ProxyEnable -eq 1) {
+    $ProxyServer = $ProxyReg.ProxyServer
+    Write-Host "ACTIVADO ($ProxyServer)" -ForegroundColor Red
+} else {
+    Write-Host "DESACTIVADO" -ForegroundColor Green
 }
 
 # -----------------------------------------------------------------
@@ -125,4 +135,45 @@ $UpdateSvc = Get-Service -Name wuauserv -ErrorAction SilentlyContinue
 Write-Host "[SERVICIO UPDATE:] " -NoNewline -ForegroundColor Yellow
 if ($UpdateSvc.Status -eq "Running") { Write-Host "ACTIVO" -ForegroundColor Green } else { Write-Host "DETENIDO" -ForegroundColor Red }
 
-Write-Host "----------------------------------------------" -ForegroundColor Cyan
+#SALUD DISCO
+
+# 1. CONFIGURACIÃ“N DE ENTORNO
+[Console]::OutputEncoding = [System.Text.Encoding]::UTF8
+$OutputEncoding = [System.Text.Encoding]::UTF8
+
+
+Write-Host "--- REPORTE DE DIAGNOSTICO TI (V2.1) ---" -ForegroundColor Cyan
+
+# 2. TIEMPO DE ENCENDIDO (UPTIME)
+$LastBoot = (Get-CimInstance Win32_OperatingSystem).LastBootUpTime
+$Uptime = (Get-Date) - $LastBoot
+Write-Host "[TIEMPO DESDE INICIO:] " -NoNewline -ForegroundColor Yellow
+$UpStr = "{0} dias, {1} horas" -f $Uptime.Days, $Uptime.Hours
+
+if ($Uptime.Days -gt 7) {
+    Write-Host $UpStr -ForegroundColor Red
+} else {
+    Write-Host $UpStr -ForegroundColor Green
+}
+
+# 3. SALUD FISICA DEL DISCO
+
+
+# 4. TOP PROCESOS RAM
+Write-Host "`n[PROCESOS QUE MAS CONSUMEN:]" -ForegroundColor Yellow
+Get-Process | Sort-Object WorkingSet64 -Descending | Select-Object -First 3 | ForEach-Object {
+    $Mem = [math]::Round($_.WorkingSet64 / 1MB, 0)
+    Write-Host " - $($_.Name): $($Mem) MB" -ForegroundColor White
+}
+
+# 5. APPS DE INICIO
+Write-Host "`n[APPS EN INICIO:]" -ForegroundColor Yellow
+$StartApps = Get-CimInstance Win32_StartupCommand -ErrorAction SilentlyContinue | Select-Object -First 5
+if ($StartApps) {
+    foreach ($App in $StartApps) { Write-Host " - $($App.Name)" -ForegroundColor Gray }
+} else {
+    Write-Host " - No se encontraron registros" -ForegroundColor Gray
+}
+
+# 6. CIERRE
+Write-Host "`n----------------------------------------------" -ForegroundColor Cyan
