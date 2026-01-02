@@ -135,16 +135,16 @@ $UpdateSvc = Get-Service -Name wuauserv -ErrorAction SilentlyContinue
 Write-Host "[SERVICIO UPDATE:] " -NoNewline -ForegroundColor Yellow
 if ($UpdateSvc.Status -eq "Running") { Write-Host "ACTIVO" -ForegroundColor Green } else { Write-Host "DETENIDO" -ForegroundColor Red }
 
-#SALUD DISCO
 
-# 1. CONFIGURACIÓN DE ENTORNO
+
+# 8. CONFIGURACIÓN DE ENTORNO
 [Console]::OutputEncoding = [System.Text.Encoding]::UTF8
 $OutputEncoding = [System.Text.Encoding]::UTF8
 
 
 Write-Host "--- REPORTE DE DIAGNOSTICO TI (V2.1) ---" -ForegroundColor Cyan
 
-# 2. TIEMPO DE ENCENDIDO (UPTIME)
+# 9. TIEMPO DE ENCENDIDO (UPTIME)
 $LastBoot = (Get-CimInstance Win32_OperatingSystem).LastBootUpTime
 $Uptime = (Get-Date) - $LastBoot
 Write-Host "[TIEMPO DESDE INICIO:] " -NoNewline -ForegroundColor Yellow
@@ -156,17 +156,17 @@ if ($Uptime.Days -gt 7) {
     Write-Host $UpStr -ForegroundColor Green
 }
 
-# 3. SALUD FISICA DEL DISCO
 
 
-# 4. TOP PROCESOS RAM
+
+# 10. TOP PROCESOS RAM
 Write-Host "`n[PROCESOS QUE MAS CONSUMEN:]" -ForegroundColor Yellow
 Get-Process | Sort-Object WorkingSet64 -Descending | Select-Object -First 3 | ForEach-Object {
     $Mem = [math]::Round($_.WorkingSet64 / 1MB, 0)
     Write-Host " - $($_.Name): $($Mem) MB" -ForegroundColor White
 }
 
-# 5. APPS DE INICIO
+# 11. APPS DE INICIO
 Write-Host "`n[APPS EN INICIO:]" -ForegroundColor Yellow
 $StartApps = Get-CimInstance Win32_StartupCommand -ErrorAction SilentlyContinue | Select-Object -First 5
 if ($StartApps) {
@@ -175,6 +175,7 @@ if ($StartApps) {
     Write-Host " - No se encontraron registros" -ForegroundColor Gray
 }
 
-# 6. CIERRE
+# . CIERRE
 Write-Host "`n----------------------------------------------" -ForegroundColor Cyan
+
 
