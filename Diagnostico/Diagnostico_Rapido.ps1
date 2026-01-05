@@ -96,14 +96,12 @@ if ($ProxyReg.ProxyEnable -eq 1) {
 # -----------------------------------------------------------------
 # 6. RECURSOS DEL SISTEMA (CPU, RAM, DISCO)
 # -----------------------------------------------------------------
+
 # --- CPU ---
 Write-Host "[USO DE CPU:] " -NoNewline -ForegroundColor Yellow
-try {
-    $CPUUsage = (Get-CimInstance Win32_PerfFormattedData_PerfOS_Processor | Where-Object {$_.Name -eq "_Total"}).PercentProcessorTime
-    $CPUUsage = [math]::Round($CPUUsage, 1)
-    if ($CPUUsage -gt 85) { Write-Host "$($CPUUsage)%" -ForegroundColor Red } else { Write-Host "$($CPUUsage)%" -ForegroundColor Green }
-} catch { Write-Host "No disponible" -ForegroundColor Yellow }
-
+# Consulta rápida a la clase Win32_Processor
+$CPU = Get-CimInstance Win32_Processor | Select-Object -ExpandProperty LoadPercentage
+if ($CPU -gt 85) { Write-Host "$CPU%" -ForegroundColor Red } else { Write-Host "$CPU%" -ForegroundColor Green }
 # --- RAM ---
 $Memory = Get-WmiObject -Class Win32_OperatingSystem
 $UsedRAM = [math]::Round((($Memory.TotalVisibleMemorySize - $Memory.FreePhysicalMemory) / $Memory.TotalVisibleMemorySize) * 100, 1)
@@ -177,6 +175,7 @@ if ($StartApps) {
 
 # . CIERRE
 Write-Host "`n----------------------------------------------" -ForegroundColor Cyan
+
 
 
 
