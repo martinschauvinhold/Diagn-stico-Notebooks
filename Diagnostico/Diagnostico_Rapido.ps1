@@ -1,9 +1,21 @@
-# SCRIPT DE DIAGN�STICO TI - VERSI�N FINAL INTEGRADA
-# Incluye: ISP Lookup con nombre, Uso de CPU, RAM, Disco y Seguridad.
+# SCRIPT DE DIAGNÓSTICO TI - VERSIÓN FINAL INTEGRADA
+# Incluye: ISP Lookup con nombre, Uso de CPU, RAM, Disco, Seguridad y LOG LOCAL.
 [Console]::OutputEncoding = [System.Text.Encoding]::UTF8
 
+# --- CONFIGURACIÓN DE ARCHIVO LOCAL (NUEVO) ---
+$FechaFormat = Get-Date -Format "yyyy-MM-dd_HHmm"
+$LogFolder = Join-Path $PSScriptRoot "Logs_Diagnostico"
+if (!(Test-Path $LogFolder)) { New-Item -ItemType Directory -Path $LogFolder | Out-Null }
+$LogPath = Join-Path $LogFolder "Diagnostico_$FechaFormat.txt"
+
+# Inicia la captura de todo lo que sale por consola
+Start-Transcript -Path $LogPath -Append -Force | Out-Null
+# ----------------------------------------------
+
 Clear-Host
-Write-Host "--- REPORTE DE DIAGNOSTICO (Soporte TI) ---" -ForegroundColor Cyan
+Write-Host "--- REPORTE DE DIAGNOSTICO VERSION 1.0.0 (Soporte TI) ---" -ForegroundColor Cyan
+Write-Host "FECHA DEL DIAGNOSTICO: $(Get-Date)" -ForegroundColor Gray
+Write-Host "--------------------------------------------" -ForegroundColor Cyan
 
 # -----------------------------------------------------------------
 # 1. SISTEMA OPERATIVO Y VERSION
@@ -33,11 +45,8 @@ if ($PingResult) {
 Write-Host "[PROVEEDOR ACTUAL:] " -NoNewline -ForegroundColor Yellow
 
 try {
-    # Usamos ipinfo.io/json para obtener el nombre de la organizaci�n
     $Lookup = Invoke-RestMethod -Uri "https://ipinfo.io/json" -TimeoutSec 5 -ErrorAction Stop
-
     if ($Lookup.org) {
-        # Limpiamos el texto para quitar el n�mero de AS y dejar solo el nombre comercial
         $NombreISP = $Lookup.org -replace 'AS\d+\s', ''
         Write-Host "$($NombreISP) (IP: $($Lookup.ip))" -ForegroundColor Green
     } else {
@@ -83,7 +92,7 @@ if ($ActiveAdapter) {
     Write-Host "[DNS PRINCIPALES:] " -NoNewline -ForegroundColor Yellow
     Write-Host "$($DnsServers)" -ForegroundColor Green
 }
-# . DETECCION DE PROXY (Registro de Windows)
+
 Write-Host "[ESTADO DEL PROXY:] " -NoNewline -ForegroundColor Yellow
 $ProxyReg = Get-ItemProperty -Path "HKCU:\Software\Microsoft\Windows\CurrentVersion\Internet Settings"
 if ($ProxyReg.ProxyEnable -eq 1) {
@@ -96,19 +105,15 @@ if ($ProxyReg.ProxyEnable -eq 1) {
 # -----------------------------------------------------------------
 # 6. RECURSOS DEL SISTEMA (CPU, RAM, DISCO)
 # -----------------------------------------------------------------
-
-# --- CPU ---
 Write-Host "[USO DE CPU:] " -NoNewline -ForegroundColor Yellow
-# Consulta rápida a la clase Win32_Processor
 $CPU = Get-CimInstance Win32_Processor | Select-Object -ExpandProperty LoadPercentage
 if ($CPU -gt 85) { Write-Host "$CPU%" -ForegroundColor Red } else { Write-Host "$CPU%" -ForegroundColor Green }
-# --- RAM ---
+
 $Memory = Get-WmiObject -Class Win32_OperatingSystem
 $UsedRAM = [math]::Round((($Memory.TotalVisibleMemorySize - $Memory.FreePhysicalMemory) / $Memory.TotalVisibleMemorySize) * 100, 1)
 Write-Host "[MEMORIA RAM:] " -NoNewline -ForegroundColor Yellow
 if ($UsedRAM -gt 85) { Write-Host "$($UsedRAM)% Usado" -ForegroundColor Red } else { Write-Host "$($UsedRAM)% Usado" -ForegroundColor Green }
 
-# --- DISCO ---
 $Disk = Get-WmiObject -Class Win32_LogicalDisk -Filter "DeviceID='C:'"
 $FreeSpace = [math]::Round(($Disk.FreeSpace / $Disk.Size) * 100, 1)
 Write-Host "[DISCO C:] " -NoNewline -ForegroundColor Yellow
@@ -133,29 +138,12 @@ $UpdateSvc = Get-Service -Name wuauserv -ErrorAction SilentlyContinue
 Write-Host "[SERVICIO UPDATE:] " -NoNewline -ForegroundColor Yellow
 if ($UpdateSvc.Status -eq "Running") { Write-Host "ACTIVO" -ForegroundColor Green } else { Write-Host "DETENIDO" -ForegroundColor Red }
 
-
-
-# 8. CONFIGURACIÓN DE ENTORNO
-[Console]::OutputEncoding = [System.Text.Encoding]::UTF8
-$OutputEncoding = [System.Text.Encoding]::UTF8
-
-
-Write-Host "--- REPORTE DE DIAGNOSTICO TI (V2.1) ---" -ForegroundColor Cyan
-
 # 9. TIEMPO DE ENCENDIDO (UPTIME)
 $LastBoot = (Get-CimInstance Win32_OperatingSystem).LastBootUpTime
 $Uptime = (Get-Date) - $LastBoot
 Write-Host "[TIEMPO DESDE INICIO:] " -NoNewline -ForegroundColor Yellow
 $UpStr = "{0} dias, {1} horas" -f $Uptime.Days, $Uptime.Hours
-
-if ($Uptime.Days -gt 7) {
-    Write-Host $UpStr -ForegroundColor Red
-} else {
-    Write-Host $UpStr -ForegroundColor Green
-}
-
-
-
+if ($Uptime.Days -gt 7) { Write-Host $UpStr -ForegroundColor Red } else { Write-Host $UpStr -ForegroundColor Green }
 
 # 10. TOP PROCESOS RAM
 Write-Host "`n[PROCESOS QUE MAS CONSUMEN:]" -ForegroundColor Yellow
@@ -173,9 +161,10 @@ if ($StartApps) {
     Write-Host " - No se encontraron registros" -ForegroundColor Gray
 }
 
-# . CIERRE
 Write-Host "`n----------------------------------------------" -ForegroundColor Cyan
+Write-Host "REPORTE GUARDADO EN: $LogPath" -ForegroundColor Gray
 
-
+# Finaliza la grabación
+Stop-Transcript | Out-Null
 
 
